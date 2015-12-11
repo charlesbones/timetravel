@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script src="js/recorder.js"></script>
+  <script type="text/javascript">
+      
+
+    ////////////////////////////////
+    // SPEECH RECOGNITION
+    // Supported only in Chrome
+    // Once started, you need to allow Chrome to use the microphone
+    ////////////////////////////////
+    
+    var love = false, hate = false;
+    var recognition = new webkitSpeechRecognition();
+    
+    // Be default, Chrome will only return a single result.
+    // By enabling "continuous", Chrome will keep the microphone active.
+    recognition.continuous = false;
+    
+    // To get the results while speaking set to true
+    recognition.interimResults = false;
+    
+    // Set language to Englisch (works without, but makes it faster)
+    recognition.lang = 'en-US';
+    
+    // When Google sends back the result we can do the magic
+    recognition.onresult = function(event) {
+        // Get the current result from the results object
+        var transcript = event.results[event.results.length-1][0].transcript;
+        // Send the result string via WebSocket to the running Processing Sketch
+        //ws.send(transcript);
+        console.log("Result: " + transcript);
+      
+        ////////////////////////////////
+        // PATTERN RECOGNITION
+        ////////////////////////////////
+      
+        if (transcript.search(/love/i) > 0) love = true;
+        if (transcript.search(/hate/i) > 0) hate = true;
+        
+        // Stop recording and trigger upload
+        upload(transcript);
+    }
+    
+    // Controlling the whole thing
+    // Start the recognition
+    recognition.start();
+    // Start the recording when Chrome recognizes "speech"
+    recognition.onspeechstart = function() { startRecording(); }
+    // End the recording when the sound ends (try onsoundend too)
+    recognition.onspeechend = function() { 
+      recorder && recorder.stop();
+      console.log('Stopped recording.');
+    }
+    
+    
+    
+    ////////////////////////////////
+    // RECORDING THE FILE
+    // is triggered when the Speech Recognition will detect Speech
+    ////////////////////////////////
+    
+    var audio_context;
+    var recorder;
+    
+    // Enabling the recording functions
+    window.onload = function init() {
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
+      window.URL = window.URL || window.webkitURL;
+      
+      audio_context = new AudioContext;
+      
+      navigator.getUserMedia({ audio: true }, startUserMedia, function(e){});
+    };
+    
+    function startUserMedia(stream) {
+      var input = audio_context.createMediaStreamSource(stream); 
+      recorder = new Recorder(input);
+    }
+
+    function startRecording() {
+      recorder && recorder.record();
+      console.log("recording...");
+    }
+
+    function upload(transcript) {
+      // Create WAV File as Blob and upload Blob
+      recorder && recorder.exportWAV(function(blob) {
+        var reader = new FileReader();
+        reader.onload = function(event){
+          $.ajax({
+            url: 'upload.php',
+            type: 'POST',
+            data: { 'transcript': transcript,
+                    'love': love,
+                    'hate': hate,
+                    'data': event.target.result,
+                  },
+            dataType: 'text'
+          }).done(function(data) {
+              console.log(data);
+          });
+        };
+        reader.readAsDataURL(blob);
+      });
+
+      recorder.clear();
+    }
+  
+  </script>
+  
+</head>
+<body>
+</body>
+</html>
