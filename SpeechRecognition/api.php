@@ -1,19 +1,20 @@
 <?php
-
 header('Content-type: application/json; charset=utf-8');
 
+// Include Database Connection
 include("db.php");
 
-$actual_link = "https://dennisbu.octans.uberspace.de/audio/";
-
+// Get Parameter
 $match = $_GET['match'];
 
+// Open Connection
 $con = mysqli_connect($dbhost,$dbuser,$dbpass,$dbName);
 
+// Get Matches
 $sql = "SELECT file FROM matches JOIN records ON matches.id_record = records.id WHERE matches.id_pattern = '$match'";
-
 $result = $con->query($sql);
 
+// Create array
 if ($result->num_rows > 0) {
     while($r = $result->fetch_assoc()) {
       $rows[] = $r;
@@ -22,8 +23,10 @@ if ($result->num_rows > 0) {
     echo "0 results";
 }
 
-print json_encode($rows, JSON_FORCE_OBJECT, JSON_UNESCAPED_SLASHES);
+// Return Result as JSON
+print json_encode($rows, JSON_UNESCAPED_SLASHES);
 
+// Close Connection
 $con->close();
 ?>
 
