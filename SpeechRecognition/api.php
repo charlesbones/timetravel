@@ -1,5 +1,7 @@
 <?php
 
+header('Content-type: application/json; charset=utf-8');
+
 include("db.php");
 
 $actual_link = "https://dennisbu.octans.uberspace.de/audio/";
@@ -20,7 +22,7 @@ if ($result->num_rows > 0) {
     echo "0 results";
 }
 
-print json_encode($rows, JSON_UNESCAPED_SLASHES);
+print json_encode($rows, JSON_FORCE_OBJECT, JSON_UNESCAPED_SLASHES);
 
 $con->close();
 ?>
